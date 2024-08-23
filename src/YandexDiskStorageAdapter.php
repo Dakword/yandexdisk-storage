@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dakword\YandexDiskStorage;
 
 use Arhitector\Yandex\Disk;
+use Arhitector\Yandex\Disk\Resource\Closed;
 use DateTime;
 use GuzzleHttp\Psr7\Request;
 use League\Flysystem\ChecksumAlgoIsNotSupported;
@@ -38,7 +39,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
     private PathPrefixer $prefixer;
     private Config $options;
 
-    public function __construct(Disk $client, string $prefix = '/', $config = []) {
+    public function __construct(Disk $client, string $prefix = '/', array $config = []) {
         $this->client = $client;
         $this->prefixer = new PathPrefixer($prefix);
         $this->prepareConfig((new Config($config)));
@@ -113,7 +114,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
         try {
             $this->createPathRecursive($this->prefixer->prefixPath(dirname($path)));
             $resource = $this->client->getResource($this->prefixer->prefixPath($path));
-            $result = $resource->upload($contents, $overwrite = true);
+            $result = $resource->upload($contents, true);
 
             if(!$result) return;
 
@@ -285,33 +286,36 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
      */
     public function listContents(string $path, bool $deep): iterable
     {
-        $resource = $this->client->getResource($this->prefixer->prefixPath($path), 10000);
-        if ($resource->has() && $resource->isDir()) {
-            foreach ($resource->items as $item) {
-                /* @var \Arhitector\Yandex\Disk\Resource\Closed $item */
-                if ($item->isDir()) {
-                    yield new DirectoryAttributes(
-                        $path . '/' .$item->name,
-                        $item->isPublish() ? Visibility::PUBLIC : Visibility::PRIVATE,
-                        (new DateTime($item->modified))->getTimestamp(),
-                        $item->toArray()
-                    );
-                } else {
-                    yield FileAttributes::fromArray([
-                        StorageAttributes::ATTRIBUTE_PATH => $path . '/' . $item->name,
-                        StorageAttributes::ATTRIBUTE_LAST_MODIFIED => DateTime::createFromFormat("Y-m-d\TH:i:sP", $item->modified)->getTimestamp(),
-                        StorageAttributes::ATTRIBUTE_FILE_SIZE => $item->size,
-                        StorageAttributes::ATTRIBUTE_VISIBILITY => $item->isPublish() ? Visibility::PUBLIC : Visibility::PRIVATE,
-                        StorageAttributes::ATTRIBUTE_MIME_TYPE => $item->mime_type,
-                        StorageAttributes::ATTRIBUTE_EXTRA_METADATA => $item->toArray(),
-                    ]);
-                }
-                if($item->isDir() && $deep) {
-                    foreach ($this->listContents($path . '/' . $item->name, $deep) as $child) {
-                        yield $child;
+        try {
+            $resource = $this->client->getResource($this->prefixer->prefixPath($path), 10000);
+            if ($resource->has() && $resource->isDir()) {
+                foreach ($resource->items as $item) {
+                    /* @var Closed $item */
+                    if ($item->isDir()) {
+                        yield new DirectoryAttributes(
+                            $path . '/' .$item->name,
+                            $item->isPublish() ? Visibility::PUBLIC : Visibility::PRIVATE,
+                            (new DateTime($item->modified))->getTimestamp(),
+                            $item->toArray()
+                        );
+                    } else {
+                        yield FileAttributes::fromArray([
+                            StorageAttributes::ATTRIBUTE_PATH => $path . '/' . $item->name,
+                            StorageAttributes::ATTRIBUTE_LAST_MODIFIED => DateTime::createFromFormat("Y-m-d\TH:i:sP", $item->modified)->getTimestamp(),
+                            StorageAttributes::ATTRIBUTE_FILE_SIZE => $item->size,
+                            StorageAttributes::ATTRIBUTE_VISIBILITY => $item->isPublish() ? Visibility::PUBLIC : Visibility::PRIVATE,
+                            StorageAttributes::ATTRIBUTE_MIME_TYPE => $item->mime_type,
+                            StorageAttributes::ATTRIBUTE_EXTRA_METADATA => $item->toArray(),
+                        ]);
+                    }
+                    if($item->isDir() && $deep) {
+                        foreach ($this->listContents($path . '/' . $item->name, true) as $child) {
+                            yield $child;
+                        }
                     }
                 }
             }
+        } catch (Throwable) {
         }
     }
 
@@ -367,13 +371,13 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
         }
     }
 
-    public function getMetadata($path)
+    public function getMetadata($path): DirectoryAttributes | FileAttributes
     {
         try {
             $resource = $this->client->getResource($this->prefixer->prefixPath($path));
             if(!$resource->has()) {
                 throw UnableToRetrieveMetadata::create($path, 'metadata', 'Resource not exists');
-            };
+            }
 
             if ($resource->isDir()) {
                 return new DirectoryAttributes(
@@ -461,7 +465,8 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
         return $this->client;
     }
 
-    private function createPathRecursive($path) {
+    private function createPathRecursive($path): void
+    {
         $currentDir = '/';
         foreach (array_filter(explode('/', $path), fn($item) => $item !== '.') as $dir) {
             $currentDir .= $dir . '/';
@@ -471,5 +476,4 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
             }
         }
     }
-
  }
