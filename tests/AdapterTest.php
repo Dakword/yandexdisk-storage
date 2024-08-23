@@ -71,6 +71,20 @@ class AdapterTest extends TestCase
         $this->assertFalse($this->adapter->directoryExists(dirname($path)));
     }
 
+    public function test_delete()
+    {
+        $this->skipIfTokenEmpty();
+
+        $path = 'test_delete/delete.zip';
+        $this->createFromTestFile($path);
+
+        $this->adapter->delete($path);
+
+        $this->assertFalse($this->adapter->fileExists($path));
+
+        $this->deleteTestDirectory(dirname($path));
+    }
+
     public function test_writeStream()
     {
         $this->skipIfTokenEmpty();
