@@ -2,6 +2,7 @@
 
 namespace Dakword\YandexDiskStorage\Tests;
 
+use Arhitector\Yandex\Disk;
 use Dakword\YandexDiskStorage\YandexDiskStorageAdapter;
 use League\Flysystem\ChecksumAlgoIsNotSupported;
 use League\Flysystem\Config;
@@ -51,6 +52,7 @@ class AdapterTest extends TestCase
     public function test_class()
     {
         $this->assertInstanceOf(YandexDiskStorageAdapter::class, $this->adapter);
+        $this->assertInstanceOf(Disk::class, $this->adapter->getClient());
     }
 
     public function test_directories()
