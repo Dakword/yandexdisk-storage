@@ -25,5 +25,5 @@ class YandexDiskServiceProvider extends ServiceProvider
 
             return new FilesystemAdapter($driver, $adapter);
         });
-   }
+    }
 }

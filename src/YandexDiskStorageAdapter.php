@@ -39,7 +39,8 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
     private PathPrefixer $prefixer;
     private Config $options;
 
-    public function __construct(Disk $client, string $prefix = '/', array $config = []) {
+    public function __construct(Disk $client, string $prefix = '/', array $config = [])
+    {
         $this->client = $client;
         $this->prefixer = new PathPrefixer($prefix);
         $this->prepareConfig((new Config($config)));
@@ -94,14 +95,14 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
             }
             fclose($stream);
 
-            if(!$result) return;
+            if (!$result) return;
 
         } catch (Throwable $exception) {
             throw UnableToWriteFile::atLocation($path, $exception->getMessage(), $exception);
         }
 
-        $visibility = (string) $config->get(Config::OPTION_VISIBILITY, $this->options->get(Config::OPTION_VISIBILITY));
-        if($visibility === Visibility::PUBLIC) {
+        $visibility = (string)$config->get(Config::OPTION_VISIBILITY, $this->options->get(Config::OPTION_VISIBILITY));
+        if ($visibility === Visibility::PUBLIC) {
             $this->setVisibility($path, Visibility::PUBLIC);
         }
     }
@@ -116,14 +117,14 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
             $resource = $this->client->getResource($this->prefixer->prefixPath($path));
             $result = $resource->upload($contents, true);
 
-            if(!$result) return;
+            if (!$result) return;
 
         } catch (Throwable $exception) {
             throw UnableToWriteFile::atLocation($path, $exception->getMessage(), $exception);
         }
 
-        $visibility = (string) $config->get('visibility', $this->options->get('visibility'));
-        if($visibility === Visibility::PUBLIC) {
+        $visibility = (string)$config->get('visibility', $this->options->get('visibility'));
+        if ($visibility === Visibility::PUBLIC) {
             $this->setVisibility($path, Visibility::PUBLIC);
         }
     }
@@ -221,7 +222,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
         }
         try {
             $resource = $this->client->getResource($this->prefixer->prefixPath($path));
-            if(!$resource->has()) {
+            if (!$resource->has()) {
                 throw UnableToSetVisibility::atLocation($path, 'Resource not exists');
             }
             $resource->setPublish($visibility == Visibility::PUBLIC);
@@ -236,7 +237,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
     public function visibility(string $path): FileAttributes
     {
         $metadata = $this->getMetadata($path);
-        if($metadata->isDir()) {
+        if ($metadata->isDir()) {
             throw UnableToRetrieveMetadata::visibility($path, 'Is not a file');
         }
         return $metadata;
@@ -263,7 +264,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
     public function lastModified(string $path): FileAttributes
     {
         $metadata = $this->getMetadata($path);
-        if($metadata->isDir()) {
+        if ($metadata->isDir()) {
             throw UnableToRetrieveMetadata::lastModified($path, 'Is not a file');
         }
         return $metadata;
@@ -275,7 +276,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
     public function fileSize(string $path): FileAttributes
     {
         $metadata = $this->getMetadata($path);
-        if($metadata->isDir()) {
+        if ($metadata->isDir()) {
             throw UnableToRetrieveMetadata::fileSize($path, 'Is not a file');
         }
         return $metadata;
@@ -293,7 +294,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
                     /* @var Closed $item */
                     if ($item->isDir()) {
                         yield new DirectoryAttributes(
-                            $path . '/' .$item->name,
+                            $path . '/' . $item->name,
                             $item->isPublish() ? Visibility::PUBLIC : Visibility::PRIVATE,
                             (new DateTime($item->modified))->getTimestamp(),
                             $item->toArray()
@@ -308,7 +309,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
                             StorageAttributes::ATTRIBUTE_EXTRA_METADATA => $item->toArray(),
                         ]);
                     }
-                    if($item->isDir() && $deep) {
+                    if ($item->isDir() && $deep) {
                         foreach ($this->listContents($path . '/' . $item->name, true) as $child) {
                             yield $child;
                         }
@@ -326,7 +327,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
     {
         try {
             $resource = $this->client->getResource($this->prefixer->prefixPath($source));
-            if(!$resource->has()) {
+            if (!$resource->has()) {
                 throw UnableToMoveFile::because('Source file does not exists', $source, $destination);
             }
 
@@ -340,7 +341,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
             throw UnableToMoveFile::fromLocationTo($source, $destination, $exception);
         }
 
-        if($visibility) {
+        if ($visibility) {
             $this->setVisibility($destination, Visibility::PUBLIC);
         }
     }
@@ -352,7 +353,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
     {
         try {
             $resource = $this->client->getResource($this->prefixer->prefixPath($source));
-            if(!$resource->has()) {
+            if (!$resource->has()) {
                 throw UnableToCopyFile::because('Source file does not exists', $source, $destination);
             }
 
@@ -366,16 +367,16 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
             throw UnableToCopyFile::fromLocationTo($source, $destination, $exception);
         }
 
-        if($visibility) {
+        if ($visibility) {
             $this->setVisibility($destination, Visibility::PUBLIC);
         }
     }
 
-    public function getMetadata($path): DirectoryAttributes | FileAttributes
+    public function getMetadata($path): DirectoryAttributes|FileAttributes
     {
         try {
             $resource = $this->client->getResource($this->prefixer->prefixPath($path));
-            if(!$resource->has()) {
+            if (!$resource->has()) {
                 throw UnableToRetrieveMetadata::create($path, 'metadata', 'Resource not exists');
             }
 
@@ -429,16 +430,16 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
      */
     public function checksum(string $path, Config $config): string
     {
-        $algo = (string) $config->get('checksum_algo', $this->options->get('checksum_algo'));
-        if(!in_array($algo, ['md5', 'sha256']))
+        $algo = (string)$config->get('checksum_algo', $this->options->get('checksum_algo'));
+        if (!in_array($algo, ['md5', 'sha256']))
             throw new ChecksumAlgoIsNotSupported('Supported algorithms: md5, sha256');
 
         try {
             $resource = $this->client->getResource($this->prefixer->prefixPath($path));
-            if(!$resource->has())
+            if (!$resource->has())
                 throw UnableToReadFile::fromLocation($path, 'File not found');
 
-            return  match ($algo) {
+            return match ($algo) {
                 'md5' => $resource->md5,
                 'sha256' => $resource->sha256,
             };
@@ -476,4 +477,4 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
             }
         }
     }
- }
+}
