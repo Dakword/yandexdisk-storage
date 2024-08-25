@@ -1,4 +1,4 @@
-## YandexDisk Storage filesystem for Flysystem.
+## YandexDisk Storage filesystem for Flysystem
 
 ### Installation
 ```php

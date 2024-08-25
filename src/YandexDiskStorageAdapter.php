@@ -325,6 +325,9 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
      */
     public function move(string $source, string $destination, Config $config): void
     {
+        if ($source === $destination) {
+            return;
+        }
         try {
             $resource = $this->client->getResource($this->prefixer->prefixPath($source));
             if (!$resource->has()) {
@@ -351,6 +354,9 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
      */
     public function copy(string $source, string $destination, Config $config): void
     {
+        if ($source === $destination) {
+            return;
+        }
         try {
             $resource = $this->client->getResource($this->prefixer->prefixPath($source));
             if (!$resource->has()) {
