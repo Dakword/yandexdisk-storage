@@ -1,5 +1,7 @@
 {
   "name": "dakword/yandexdisk-storage",
+  "description": "YandexDisk Storage filesystem for Flysystem",
+  "keywords": ["yandex", "yandexdisk", "storage", "flysystem", "filesystem", "adapter", "laravel"],
   "license": "MIT",
   "require": {
     "php": "^8.2",
