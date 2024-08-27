@@ -17,6 +17,7 @@ use League\Flysystem\FilesystemAdapter;
 use League\Flysystem\InvalidVisibilityProvided;
 use League\Flysystem\PathPrefixer;
 use League\Flysystem\StorageAttributes;
+use League\Flysystem\UnableToCheckExistence;
 use League\Flysystem\UnableToCopyFile;
 use League\Flysystem\UnableToCreateDirectory;
 use League\Flysystem\UnableToDeleteDirectory;
@@ -60,8 +61,12 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
      */
     public function fileExists(string $path): bool
     {
-        $resource = $this->client->getResource($this->prefixer->prefixPath($path));
-        return $resource->has() && $resource->isFile();
+        try {
+            $resource = $this->client->getResource($this->prefixer->prefixPath($path));
+            return $resource->has() && $resource->isFile();
+        } catch (Throwable $exception) {
+            throw UnableToCheckExistence::forLocation($path, $exception);
+        }
     }
 
     /**
@@ -69,8 +74,12 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
      */
     public function directoryExists(string $path): bool
     {
-        $resource = $this->client->getResource($this->prefixer->prefixPath($path));
-        return $resource->has() && $resource->isDir();
+        try {
+            $resource = $this->client->getResource($this->prefixer->prefixPath($path));
+            return $resource->has() && $resource->isDir();
+        } catch (Throwable $exception) {
+            throw UnableToCheckExistence::forLocation($path, $exception);
+        }
     }
 
     /**
