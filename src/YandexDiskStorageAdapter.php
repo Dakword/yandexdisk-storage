@@ -297,34 +297,45 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
     public function listContents(string $path, bool $deep): iterable
     {
         try {
-            $resource = $this->client->getResource($this->prefixer->prefixPath($path), 10000);
-            if ($resource->has() && $resource->isDir()) {
-                foreach ($resource->items as $item) {
-                    /* @var Closed $item */
-                    if ($item->isDir()) {
-                        yield new DirectoryAttributes(
-                            $path . '/' . $item->name,
-                            $item->isPublish() ? Visibility::PUBLIC : Visibility::PRIVATE,
-                            (new DateTime($item->modified))->getTimestamp(),
-                            $item->toArray()
-                        );
-                    } else {
-                        yield FileAttributes::fromArray([
-                            StorageAttributes::ATTRIBUTE_PATH => $path . '/' . $item->name,
-                            StorageAttributes::ATTRIBUTE_LAST_MODIFIED => DateTime::createFromFormat("Y-m-d\TH:i:sP", $item->modified)->getTimestamp(),
-                            StorageAttributes::ATTRIBUTE_FILE_SIZE => $item->size,
-                            StorageAttributes::ATTRIBUTE_VISIBILITY => $item->isPublish() ? Visibility::PUBLIC : Visibility::PRIVATE,
-                            StorageAttributes::ATTRIBUTE_MIME_TYPE => $item->mime_type,
-                            StorageAttributes::ATTRIBUTE_EXTRA_METADATA => $item->toArray(),
-                        ]);
-                    }
-                    if ($item->isDir() && $deep) {
-                        foreach ($this->listContents($path . '/' . $item->name, true) as $child) {
-                            yield $child;
+            $limit = 100;
+            $resource = $this->client->getResource($this->prefixer->prefixPath($path), $limit);
+            $totalCount = $resource->get('total', $resource->items->count());
+            $totalPages = ceil($totalCount / $limit);
+            $page = 1;
+
+            do {
+                if ($resource->has() && $resource->isDir()) {
+                    foreach ($resource->items as $item) {
+                        /* @var Closed $item */
+                        if ($item->isDir()) {
+                            yield new DirectoryAttributes(
+                                $path . '/' . $item->name,
+                                $item->isPublish() ? Visibility::PUBLIC : Visibility::PRIVATE,
+                                (new DateTime($item->modified))->getTimestamp(),
+                                $item->toArray()
+                            );
+                        } else {
+                            yield FileAttributes::fromArray([
+                                StorageAttributes::ATTRIBUTE_PATH => $path . '/' . $item->name,
+                                StorageAttributes::ATTRIBUTE_LAST_MODIFIED => DateTime::createFromFormat("Y-m-d\TH:i:sP", $item->modified)->getTimestamp(),
+                                StorageAttributes::ATTRIBUTE_FILE_SIZE => $item->size,
+                                StorageAttributes::ATTRIBUTE_VISIBILITY => $item->isPublish() ? Visibility::PUBLIC : Visibility::PRIVATE,
+                                StorageAttributes::ATTRIBUTE_MIME_TYPE => $item->mime_type,
+                                StorageAttributes::ATTRIBUTE_EXTRA_METADATA => $item->toArray(),
+                            ]);
+                        }
+                        if ($item->isDir() && $deep) {
+                            foreach ($this->listContents($path . '/' . $item->name, true) as $child) {
+                                yield $child;
+                            }
                         }
                     }
                 }
-            }
+                $resource->setOffset($limit * $page);
+                $page++;
+
+            } while ($page <= $totalPages);
+
         } catch (Throwable) {
         }
     }

@@ -162,23 +162,27 @@ class AdapterTest extends TestCase
         $this->skipIfTokenEmpty();
 
         $directory = 'test_listContent/subDirectory';
-        $path = 'test_listContent/file.txt';
+        $path1 = 'test_listContent/file1.txt';
+        $path2 = 'test_listContent/subDirectory/file2.txt';
 
         $this->adapter->createDirectory($directory, new Config());
-        $this->createFromTestFile($path);
+        $this->createFromTestFile($path1);
+        $this->createFromTestFile($path2);
 
-        $listContent = iterator_to_array($this->adapter->listContents(dirname($path), true));
+        $listContent1 = iterator_to_array($this->adapter->listContents(dirname($path1), true));
+        $listContent2 = iterator_to_array($this->adapter->listContents(dirname($path2), true));
 
-        $this->assertCount(2, $listContent);
+        $this->assertCount(3, $listContent1);
+        $this->assertCount(1, $listContent2);
 
-        [$fileIndex, $directoryIndex] = $listContent[0]->isFile() ? [0, 1] : [1, 0];
-        $subDirectory = $listContent[$directoryIndex];
-        $file = $listContent[$fileIndex];
+        [$fileIndex, $directoryIndex] = $listContent1[0]->isFile() ? [0, 1] : [1, 0];
+        $subDirectory = $listContent1[$directoryIndex];
+        $file = $listContent1[$fileIndex];
 
         $this->assertInstanceOf(DirectoryAttributes::class, $subDirectory);
         $this->assertInstanceOf(FileAttributes::class, $file);
 
-        $this->deleteTestDirectory(dirname($path));
+        $this->deleteTestDirectory(dirname($directory));
     }
 
     public function test_copy()
