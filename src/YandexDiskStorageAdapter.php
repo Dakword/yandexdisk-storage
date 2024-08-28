@@ -111,9 +111,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
         }
 
         $visibility = (string)$config->get(Config::OPTION_VISIBILITY, $this->options->get(Config::OPTION_VISIBILITY));
-        if ($visibility === Visibility::PUBLIC) {
-            $this->setVisibility($path, Visibility::PUBLIC);
-        }
+        $this->setVisibility($path, $visibility);
     }
 
     /**
@@ -133,9 +131,7 @@ class YandexDiskStorageAdapter implements FilesystemAdapter, PublicUrlGenerator,
         }
 
         $visibility = (string)$config->get('visibility', $this->options->get('visibility'));
-        if ($visibility === Visibility::PUBLIC) {
-            $this->setVisibility($path, Visibility::PUBLIC);
-        }
+        $this->setVisibility($path, $visibility);
     }
 
     /**
