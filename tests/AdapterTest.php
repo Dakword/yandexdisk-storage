@@ -44,7 +44,7 @@ class AdapterTest extends TestCase
         $this->adapter->deleteDirectory($path);
 
         if (strlen($this->config['prefix']) > 0 && $this->config['prefix'] !== '/') {
-            sleep(5);
+            sleep(3);
             $this->adapter->deleteDirectory('/');
         }
     }
